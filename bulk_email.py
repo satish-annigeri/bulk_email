@@ -1,15 +1,19 @@
+import os
 import time
 from email.message import EmailMessage
 from email.utils import formataddr
 import smtplib
+from dotenv import load_dotenv
 from openpyxl import load_workbook
 from mako.template import Template
 
 
+load_dotenv()
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
-login_name = "you@example.com"
-pwd = "password"
+login_id = os.environ.get("LOGIN_ID", "")
+sender_name = os.environ.get("SENDER_NAME", "")
+pwd = os.environ.get("APP_PASSWORD", "")
 
 html_template = Template(filename="email_template.html")
 
@@ -17,49 +21,76 @@ html_template = Template(filename="email_template.html")
 def send_smtp(
     smtp_server: str,
     smtp_port: int,
-    login: str,
+    login_id: str,
+    pwd: str,
     sender_name: str,
     recipients_list: list[tuple[str, str, bool]],
     subject: str,
     html_template: Template,
+    start: int = 1,
+    count: int = -1,
     sleep_sec: int = 1,
     dry_run: bool = True,
 ):
     msg = EmailMessage()
-    msg["From"] = formataddr((sender_name, login))
+    msg["From"] = formataddr((sender_name, login_id))
     msg["To"] = formataddr((recipients_list[0][1], recipients_list[0][0]))
     msg["Subject"] = subject
 
+    if start < 1:
+        start = 1
+
+    if count < 0 or count > len(recipients_list):
+        count = len(recipients_list) - start + 1
+
     if dry_run:
         print("Dry run: Emails will not be sent. Here are the details:")
-        for i, recipient in enumerate(recipients_list, start=1):
-            to_email, to_name, att_mode, *_ = recipient
-            print(f"{i:4}: {to_name:30} {'<' + to_email + '>':50} {att_mode}")
-        return
+        print(f"SMTP Server: {smtp_server}:{smtp_port}")
+        print(f"Login ID: {login_id} ({sender_name})")
 
+        if count > 0:
+            sent_count = 0
+            for i, recipient in enumerate(recipients_list, start=1):
+                if i < start:
+                    continue
+                to_email, to_name, att_mode, *_ = recipient
+                sent_count += 1
+                print(f"{i:4}: {to_name:30} {'<' + to_email + '>':50} {att_mode}")
+                if sent_count == count:
+                    break
+        print(f"Total emails sent: {count}")
+        return  # Return from the function after a dry run
+
+    # Strat a real run
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         print("Sending emails")
         server.ehlo()
         server.starttls()
-        server.login(login, pwd)
+        server.login(login_id, pwd)
 
-        for i, recipient in enumerate(recipients_list, start=1):
-            if i > 1:
-                break
-            to_email, to_name, att_mode, *_ = recipient
-            html = html_template.render(name=to_name, mode=att_mode)
-            msg.replace_header("To", f"{to_name} <{to_email}>")
-            msg.set_content(html, subtype="html")
+        if count > 0:
+            sent_count = 0
+            for i, recipient in enumerate(recipients_list, start=1):
+                if i < start:
+                    continue
+                to_email, to_name, att_mode, *_ = recipient
+                html = html_template.render(name=to_name, mode=att_mode)
+                msg.replace_header("To", f"{to_name} <{to_email}>")
+                msg.set_content(html, subtype="html")
 
-            try:
-                server.send_message(msg)
-                time.sleep(sleep_sec)
-                print(
-                    f"Sent to: {i:4}: {to_name:30} '<'+{to_email + '>':50}> {att_mode}"
-                )
-            except Exception as e:
-                print(f"An error occurred while sending the email: {e}")
-    print(f"Sent {i} {'emails' if i > 1 else 'email'}.")
+                try:
+                    server.send_message(msg)
+                    sent_count += 1
+                    print(
+                        f"Sent to: {i:4}: {to_name:30} '<'+{to_email + '>':50}> {att_mode}"
+                    )
+                    if sent_count == count:
+                        break
+
+                    time.sleep(sleep_sec)
+                except Exception as e:
+                    print(f"An error occurred while sending the email: {e}")
+        print(f"Total emails sent: {i}")
 
 
 def clean_name(name: str) -> str:
@@ -87,10 +118,6 @@ def prepare_recipients_list_from_excel(fname: str) -> list[tuple[str, str, bool]
 
 
 if __name__ == "__main__":
-    login = "satish.annigeri@gmail.com"
-    sender_name = "Satish Annigeri"
-    to_email = "satish.annigeri@outlook.com"
-    to_name = "Satish Annigeri"
     subject = "Thank you for registering for the SEA Tech Talk February 2026"
 
     recipients_list = [
@@ -108,10 +135,13 @@ if __name__ == "__main__":
     send_smtp(
         smtp_server,
         smtp_port,
-        login_name,
+        login_id,
+        pwd,
         sender_name,
         recipients_list,
         subject,
         html_template,
-        dry_run=True,
+        start=1,
+        count=1,
+        dry_run=False,
     )
