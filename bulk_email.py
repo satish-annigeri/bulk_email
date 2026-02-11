@@ -8,8 +8,8 @@ from mako.template import Template
 
 smtp_server = "smtp.gmail.com"
 smtp_port = 587
-login_name = "satish.annigeri@gmail.com"
-pwd = "qtyt ecxd coit wkjs"
+login_name = "you@example.com"
+pwd = "password"
 
 html_template = Template(filename="email_template.html")
 
