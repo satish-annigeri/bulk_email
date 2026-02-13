@@ -11,5 +11,5 @@ wheels/
 venv/
 
 .env
-.PDF
-.pdf
+*.PDF
+*.pdf
