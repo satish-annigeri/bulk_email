@@ -143,5 +143,5 @@ if __name__ == "__main__":
         html_template,
         start=1,
         count=1,
-        dry_run=False,
+        dry_run=True,
     )
