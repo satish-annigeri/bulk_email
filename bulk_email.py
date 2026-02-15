@@ -144,11 +144,6 @@ if __name__ == "__main__":
         subject,
         html_template,
         start=1,
-<<<<<<< Updated upstream
         count=1,
         dry_run=True,
-=======
-        count=2,
-        dry_run=False,
->>>>>>> Stashed changes
     )
