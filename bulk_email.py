@@ -15,7 +15,7 @@ login_id = os.environ.get("LOGIN_ID", "")
 sender_name = os.environ.get("SENDER_NAME", "")
 pwd = os.environ.get("APP_PASSWORD", "")
 
-html_template = Template(filename="email_template.html")
+html_template = Template(filename="meeting_link.html")
 
 
 def send_smtp(
@@ -74,6 +74,10 @@ def send_smtp(
                 if i < start:
                     continue
                 to_email, to_name, att_mode, *_ = recipient
+                print(
+                    f"Sending to: {i:4}: {to_name:30} {to_email:50} {att_mode}",
+                    end=" ",
+                )
                 html = html_template.render(name=to_name, mode=att_mode)
                 msg.replace_header("To", f"{to_name} <{to_email}>")
                 msg.set_content(html, subtype="html")
@@ -81,9 +85,7 @@ def send_smtp(
                 try:
                     server.send_message(msg)
                     sent_count += 1
-                    print(
-                        f"Sent to: {i:4}: {to_name:30} '<'+{to_email + '>':50}> {att_mode}"
-                    )
+                    print("Sent")
                     if sent_count == count:
                         break
 
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     subject = "Thank you for registering for the SEA Tech Talk February 2026"
 
     recipients_list = [
-        # ("satish.annigeri@outlook.com", "Satish Annigeri", True),
+        ("satish.annigeri@outlook.com", "Satish Annigeri", True),
         ("satish.annigeri@outlook.com", "Satish Annigeri", False),
         # ("asifdanwad@gmail.com", "Asif Iqbal Danwad", True),
         # ("asifdanwad@gmail.com", "Asif Iqbal Danwad", False),
@@ -142,6 +144,11 @@ if __name__ == "__main__":
         subject,
         html_template,
         start=1,
+<<<<<<< Updated upstream
         count=1,
         dry_run=True,
+=======
+        count=2,
+        dry_run=False,
+>>>>>>> Stashed changes
     )
