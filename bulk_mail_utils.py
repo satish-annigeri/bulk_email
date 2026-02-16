@@ -1,9 +1,19 @@
+import os
 from os.path import splitext, isfile
 import tomllib
 
+from dotenv import load_dotenv
 import pandas as pd
 from mako.template import Template
 from markdown import markdown
+
+
+def read_config(fname_toml: str) -> dict:
+    if not isfile(fname_toml):
+        raise FileNotFoundError(f"File not found: {fname_toml}")
+    with open(fname_toml, "rb") as f:
+        config = tomllib.load(f)
+    return config
 
 
 def read_data_file(fname: str) -> pd.DataFrame:
@@ -72,12 +82,22 @@ def tpl_render(tpl_fname: str, **kwargs) -> str:
         return txt
 
 
-def read_config(fname_toml: str) -> dict:
-    if not isfile(fname_toml):
-        raise FileNotFoundError(f"File not found: {fname_toml}")
-    with open(fname_toml, "rb") as f:
-        config = tomllib.load(f)
-    return config
+def send_bulk_emails(config: dict[str, str], dry_run: bool = True) -> None:
+    df = read_data_file(config["recipients"])
+    df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
+    df = mangle_name(df, "name")
+    if dry_run:
+        for _, row in df.iterrows():
+            html = tpl_render(config["template"], name=row["name"], mode=True)
+            start, _, _ = html.partition("</p>")
+            print(f"{row['name']} <{row['email']}> {start}</p>...")
+        return
+    else:
+        for _, row in df.iterrows():
+            html = tpl_render(config["template"], name=row["name"], mode=False)
+            start, _, _ = html.partition("</p>")
+            print(f"{row['name']} <{row['email']}> with content: {start}</p>...")
+            # Here you would add the actual email sending logic using an email library like smtplib or a service API
 
 
 if __name__ == "__main__":
@@ -86,13 +106,22 @@ if __name__ == "__main__":
     fname = config["recipients"]
     tpl_fname = config["template"]
 
-    df = read_data_file(fname)
-    print(len(df))
-    df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
-    print(len(df))
-    df = mangle_name(df, "name")
-    print(df[["email", "name"]])
-    html = tpl_render(tpl_fname, name="Satish Annigeri", mode=True)
-    print(html)
-    html = tpl_render(tpl_fname, name="Satish Annigeri", mode=False)
-    print(html)
+    load_dotenv()
+    config["login_id"] = os.getenv("LOGIN_ID")
+    config["sender_name"] = os.getenv("SENDER_NAME")
+    config["password"] = os.getenv("APP_PASSWORD")
+    print(
+        f"Login ID: {config['login_id']}, Sender Name: {config['sender_name']}, Password: {'*' * len(config['password']) if config['password'] else None}"
+    )
+
+    send_bulk_emails(config)
+    # df = read_data_file(fname)
+    # print(len(df))
+    # df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
+    # print(len(df))
+    # df = mangle_name(df, "name")
+    # print(df[["email", "name"]])
+    # html = tpl_render(tpl_fname, name="Satish Annigeri", mode=True)
+    # print(html)
+    # html = tpl_render(tpl_fname, name="Satish Annigeri", mode=False)
+    # print(html)
