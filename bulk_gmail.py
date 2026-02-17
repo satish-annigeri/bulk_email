@@ -37,6 +37,14 @@ def _(utils):
 
 
 @app.cell
+def _(mo, tpl_fname):
+    with open(tpl_fname, "rb") as fp:
+        _txt = fp.read()
+    mo.ui.code_editor(_txt.decode("utf-8"), language="html")
+    return
+
+
+@app.cell
 def _(mo, tpl_fname, utils):
     tpl,tpl_type = utils.read_template(tpl_fname)
     # print(tpl_type)
@@ -46,9 +54,15 @@ def _(mo, tpl_fname, utils):
 
 
 @app.cell
-def _(recipients_fname, tpl_fname, utils):
+def _(mo, recipients_fname, utils):
     df = utils.read_recipients_data(recipients_fname)
-    utils.send_bulk_emails(tpl_fname, df, 1, 1)
+    mo.ui.table(df)
+    return (df,)
+
+
+@app.cell
+def _(df, tpl_fname, utils):
+    utils.send_bulk_emails(tpl_fname, df, 1, -1)
     return
 
 

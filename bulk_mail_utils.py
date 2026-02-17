@@ -149,13 +149,3 @@ if __name__ == "__main__":
 
     df = read_recipients_data(config["recipients"])
     send_bulk_emails(config["template"], df, 2, 1)
-    # df = read_data_file(fname)
-    # print(len(df))
-    # df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
-    # print(len(df))
-    # df = mangle_name(df, "name")
-    # print(df[["email", "name"]])
-    # html = tpl_render(tpl_fname, name="Satish Annigeri", mode=True)
-    # print(html)
-    # html = tpl_render(tpl_fname, name="Satish Annigeri", mode=False)
-    # print(html)
