@@ -64,47 +64,80 @@ def mangle_name(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
     return df
 
 
-def tpl_render(tpl_fname: str, **kwargs) -> str:
-    ext = splitext(tpl_fname)[1].lower()
-    if ext not in [".html", ".htm", ".md"]:
-        raise ValueError(f"Unsupported template file type: {ext}")
+def read_template(tpl_fname: str) -> tuple[Template, str]:
+    if not isfile(tpl_fname):
+        raise FileNotFoundError(f"File not found: {tpl_fname}")
 
-    tpl = Template(filename=tpl_fname)
+    tpl_type = splitext(tpl_fname)[1].lower()
+
+    return Template(filename=tpl_fname), tpl_type
+
+
+def tpl_render(tpl: Template, tpl_type: str, **kwargs) -> str:
+    if tpl_type not in [".html", ".htm", ".md"]:
+        raise ValueError(f"Unsupported template file type: {tpl_type}")
+
     txt = tpl.render(**kwargs)
     if isinstance(txt, bytes):
         txt = txt.decode("utf-8")
     else:
         txt = str(txt)
 
-    if ext == ".md":
+    if tpl_type == ".md":
         return markdown(txt)
     else:
         return txt
 
 
-def send_bulk_emails(config: dict[str, str], dry_run: bool = True) -> None:
-    df = read_data_file(config["recipients"])
+def read_recipients_data(recipients_fname: str) -> pd.DataFrame:
+    df = read_data_file(recipients_fname)
     df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
     df = mangle_name(df, "name")
+    return df
+
+
+def send_bulk_emails(
+    tpl_fname: str,
+    df: pd.DataFrame,
+    start: int = 1,
+    count: int = -1,
+    dry_run: bool = True,
+) -> None:
+    tpl, tpl_type = read_template(tpl_fname)
+
+    # df = read_data_file(config["recipients"])
+    # df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
+    # df = mangle_name(df, "name")
+
+    i = 0
+    if i < 0:
+        return
+    elif count < 0:
+        count = len(df)
+    last = min(start + count - 1, len(df))
     if dry_run:
         for _, row in df.iterrows():
-            html = tpl_render(config["template"], name=row["name"], mode=True)
-            start, _, _ = html.partition("</p>")
-            print(f"{row['name']} <{row['email']}> {start}</p>...")
+            i += 1
+            if i >= start and i <= last:
+                html = tpl_render(tpl, tpl_type, name=row["name"], mode=True)
+                start_portion, _, _ = html.partition("</p>")
+                print(f"{row['name']} <{row['email']}> {start_portion}</p>...")
         return
     else:
         for _, row in df.iterrows():
-            html = tpl_render(config["template"], name=row["name"], mode=False)
-            start, _, _ = html.partition("</p>")
-            print(f"{row['name']} <{row['email']}> with content: {start}</p>...")
+            html = tpl_render(tpl, tpl_type, name=row["name"], mode=False)
+            start_portion, _, _ = html.partition("</p>")
+            print(
+                f"{row['name']} <{row['email']}> with content: {start_portion}</p>..."
+            )
             # Here you would add the actual email sending logic using an email library like smtplib or a service API
 
 
 if __name__ == "__main__":
     config = read_config("config.toml")
     print(config)
-    fname = config["recipients"]
-    tpl_fname = config["template"]
+    # fname = config["recipients"]
+    # tpl_fname = config["template"]
 
     load_dotenv()
     config["login_id"] = os.getenv("LOGIN_ID")
@@ -114,7 +147,8 @@ if __name__ == "__main__":
         f"Login ID: {config['login_id']}, Sender Name: {config['sender_name']}, Password: {'*' * len(config['password']) if config['password'] else None}"
     )
 
-    send_bulk_emails(config)
+    df = read_recipients_data(config["recipients"])
+    send_bulk_emails(config["template"], df, 2, 1)
     # df = read_data_file(fname)
     # print(len(df))
     # df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
