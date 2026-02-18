@@ -1,2 +1,5 @@
-template = "meeting_link.html"
-recipients = "python_for_str_engg.xlsx"
+template = "meeting_link_mcmembers.html"
+recipients = "SEA_MC_ContactInfo.xlsx"
+subject = "Schedule of SEA Tech Talk - Friday 20th Feb, 2026"
+attachment = "python_for_structural_engineers.pdf"
+

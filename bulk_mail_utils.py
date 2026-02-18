@@ -1,6 +1,10 @@
+import time
 import os
 from os.path import splitext, isfile
 import tomllib
+from email.message import EmailMessage
+from email.utils import formataddr
+import smtplib
 
 from dotenv import load_dotenv
 import pandas as pd
@@ -13,6 +17,14 @@ def read_config(fname_toml: str) -> dict:
         raise FileNotFoundError(f"File not found: {fname_toml}")
     with open(fname_toml, "rb") as f:
         config = tomllib.load(f)
+    if not isfile(config["recipients"]):
+        raise FileNotFoundError(f"Recipients file not found: {config['recipients']}")
+    if not isfile(config["template"]):
+        raise FileNotFoundError(f"Template file not found: {config['template']}")
+    if not isfile(config.get("pdf_attachment", "")):
+        print(
+            f"Warning: PDF attachment file not found: {config.get('pdf_attachment', '')}"
+        )
     return config
 
 
@@ -89,11 +101,37 @@ def tpl_render(tpl: Template, tpl_type: str, **kwargs) -> str:
         return txt
 
 
-def read_recipients_data(recipients_fname: str) -> pd.DataFrame:
+def read_recipients_data(
+    recipients_fname: str, cols_dup=["email", "name"], cols_sort=["name"]
+) -> pd.DataFrame:
+    print(recipients_fname)
     df = read_data_file(recipients_fname)
-    df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
+    df = clean_data(df, cols_dup=cols_dup, cols_sort=cols_sort)
     df = mangle_name(df, "name")
+    # print(df)
     return df
+
+
+def build_message(
+    sender_name: str,
+    sender_email: str,
+    recipient_name: str,
+    recipient_email: str,
+    subject: str,
+    body: str,
+    pdf_fname: str = "",
+    pdf_bytes: bytes = b"",  # PDF file as bytes to be attached to the message
+) -> EmailMessage:
+    msg = EmailMessage()
+    msg["From"] = formataddr((sender_name, sender_email))
+    msg["To"] = formataddr((recipient_name, recipient_email))
+    msg["Subject"] = subject
+    msg.set_content(body, subtype="html")
+    if pdf_fname and pdf_bytes:
+        msg.add_attachment(
+            pdf_bytes, maintype="application", subtype="pdf", filename=pdf_fname
+        )
+    return msg
 
 
 def send_bulk_emails(
@@ -101,13 +139,13 @@ def send_bulk_emails(
     df: pd.DataFrame,
     start: int = 1,
     count: int = -1,
+    login_id: str = "",
+    pwd: str = "",
+    pdf_fname: str = "",
+    # pdf_bytes: bytes = b"",
     dry_run: bool = True,
 ) -> None:
     tpl, tpl_type = read_template(tpl_fname)
-
-    # df = read_data_file(config["recipients"])
-    # df = clean_data(df, cols_dup=["email", "name"], cols_sort=["name"])
-    # df = mangle_name(df, "name")
 
     i = 0
     if i < 0:
@@ -124,12 +162,37 @@ def send_bulk_emails(
                 print(f"{row['name']} <{row['email']}> {start_portion}</p>...")
         return
     else:
-        for _, row in df.iterrows():
-            html = tpl_render(tpl, tpl_type, name=row["name"], mode=False)
-            start_portion, _, _ = html.partition("</p>")
-            print(
-                f"{row['name']} <{row['email']}> with content: {start_portion}</p>..."
-            )
+        if isfile(pdf_fname):
+            with open(pdf_fname, "rb") as f:
+                pdf_bytes = f.read()
+            print(f"PDF attachment {pdf_fname} loaded successfully.")
+        else:
+            print(f"Attachment {pdf_fname} not found. Continuing without attachment.")
+            pdf_bytes = b""
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(login_id, pwd)
+            for _, row in df.iterrows():
+                i += 1
+                if i >= start and i <= last:
+                    html = tpl_render(tpl, tpl_type, name=row["name"], mode=row["mode"])
+                    msg = build_message(
+                        sender_name=config["sender_name"],
+                        sender_email=login_id,
+                        recipient_name=row["name"],
+                        recipient_email=row["email"],
+                        subject=config["subject"],
+                        body=html,
+                        pdf_fname=pdf_fname,
+                        pdf_bytes=pdf_bytes,
+                    )
+                    try:
+                        server.send_message(msg)
+                        print(f"{row['name']} <{row['email']}> {row['mode']}")
+                        time.sleep(0.5)
+                    except Exception as e:
+                        print(f"Error sending message: {e}")
+            print("All emails sent successfully.")
             # Here you would add the actual email sending logic using an email library like smtplib or a service API
 
 
@@ -147,5 +210,18 @@ if __name__ == "__main__":
         f"Login ID: {config['login_id']}, Sender Name: {config['sender_name']}, Password: {'*' * len(config['password']) if config['password'] else None}"
     )
 
-    df = read_recipients_data(config["recipients"])
-    send_bulk_emails(config["template"], df, 2, 1)
+    df = read_recipients_data(config["recipients"], cols_dup=[], cols_sort=[])
+    df["mode"] = df["att_mode"].apply(lambda x: x.strip().lower().startswith("online"))
+    df = df[["email", "name", "mode"]].copy()
+    print(df)
+    if config["login_id"] and config["password"]:
+        send_bulk_emails(
+            config["template"],
+            df,
+            4,
+            1,
+            login_id=config["login_id"],
+            pwd=config["password"],
+            pdf_fname=config["attachment"],
+            dry_run=False,
+        )
