@@ -105,7 +105,7 @@ def read_recipients_data(
     print(recipients_fname)
     df = read_data_file(recipients_fname)
     df = clean_data(df, cols_dup=cols_dup, cols_sort=cols_sort)
-    df = mangle_name(df, "name")
+    # df = mangle_name(df, "name")
     # print(df)
     return df
 
@@ -153,13 +153,16 @@ def send_bulk_emails(
     elif count < 0:
         count = len(df)
     last = min(start + count - 1, len(df))
+    sent_count = 0
     if dry_run:
         for _, row in df.iterrows():
             i += 1
             if i >= start and i <= last:
                 html = tpl_render(tpl, tpl_type, name=row["name"], mode=True)
                 start_portion, _, _ = html.partition("</p>")
-                print(f"{row['name']} <{row['email']}> {start_portion}</p>...")
+                print(f"{row['name']} <{row['email']}> {row['mode']}")
+                sent_count += 1
+        print(f"Total emails that will be sent: {sent_count}")
         return
     else:
         if isfile(pdf_fname):
@@ -189,10 +192,11 @@ def send_bulk_emails(
                     try:
                         server.send_message(msg)
                         print(f"{row['name']} <{row['email']}> {row['mode']}")
+                        sent_count += 1
                         time.sleep(delay)
                     except Exception as e:
                         print(f"Error sending message: {e}")
-            print("All emails sent successfully.")
+            print(f"Total emails sent: {sent_count}")
             # Here you would add the actual email sending logic using an email library like smtplib or a service API
 
 

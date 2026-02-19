@@ -1,5 +1,5 @@
 template = "meeting_link.html"
-recipients = "test_recipients.xlsx"
-subject = "Schedule of SEA Tech Talk - Friday 20th Feb, 2026"
+recipients = "python_for_str_engg_registrations.xlsx"
+subject = 'SEA Tech Talk "Python for Structural Engineers" - Google Meet link and schedule'
 attachment = "python_for_structural_engineers.pdf"
 

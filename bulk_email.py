@@ -92,7 +92,7 @@ def send_smtp(
                     time.sleep(sleep_sec)
                 except Exception as e:
                     print(f"An error occurred while sending the email: {e}")
-        print(f"Total emails sent: {i}")
+            print(f"Total emails sent: {sent_count}")
 
 
 def clean_name(name: str) -> str:
