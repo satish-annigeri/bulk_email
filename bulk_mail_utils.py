@@ -142,7 +142,7 @@ def send_bulk_emails(
     sender_name: str = "",
     subject: str = "",
     pdf_fname: str = "",
-    # pdf_bytes: bytes = b"",
+    delay: float = 0.5,
     dry_run: bool = True,
 ) -> None:
     tpl, tpl_type = read_template(tpl_fname)
@@ -189,7 +189,7 @@ def send_bulk_emails(
                     try:
                         server.send_message(msg)
                         print(f"{row['name']} <{row['email']}> {row['mode']}")
-                        time.sleep(0.5)
+                        time.sleep(delay)
                     except Exception as e:
                         print(f"Error sending message: {e}")
             print("All emails sent successfully.")
