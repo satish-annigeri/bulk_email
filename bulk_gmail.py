@@ -11,10 +11,11 @@ def _():
     import os
     from dotenv import load_dotenv
     from mako.template import Template
+    from pprint import pprint
 
     import bulk_mail_utils as utils
 
-    return load_dotenv, mo, os, utils
+    return load_dotenv, mo, os, pprint, utils
 
 
 @app.cell
@@ -24,16 +25,19 @@ def _(load_dotenv, os):
     sender_name = os.getenv("SENDER_NAME", "")
     pwd = os.getenv("APP_PASSWORD", "")
     print(f"Login ID: {sender_name} <{login_id}> {pwd}")
-    return
+    return login_id, pwd, sender_name
 
 
 @app.cell
-def _(utils):
+def _(pprint, utils):
     config = utils.read_config("config.toml")
+    pprint(config, indent=4)
     tpl_fname = config["template"]
     recipients_fname = config["recipients"]
+    pdf_fname = config['attachment']
     print(f"Template: {tpl_fname} Recipients data: {recipients_fname}")
-    return recipients_fname, tpl_fname
+    print(f"PDF attachment file: {pdf_fname}")
+    return config, pdf_fname, recipients_fname, tpl_fname
 
 
 @app.cell
@@ -55,14 +59,15 @@ def _(mo, tpl_fname, utils):
 
 @app.cell
 def _(mo, recipients_fname, utils):
-    df = utils.read_recipients_data(recipients_fname)
+    df = utils.read_recipients_data(recipients_fname, cols_dup=[], cols_sort=[])
+    df["mode"] = df["att_mode"].str.lower().str.startswith("online")
     mo.ui.table(df)
     return (df,)
 
 
 @app.cell
-def _(df, tpl_fname, utils):
-    utils.send_bulk_emails(tpl_fname, df, 1, -1)
+def _(config, df, login_id, pdf_fname, pwd, sender_name, tpl_fname, utils):
+    utils.send_bulk_emails(tpl_fname, df, 1, 2, login_id=login_id, pwd=pwd, sender_name=sender_name, subject=config["subject"], pdf_fname=pdf_fname, dry_run=False)
     return
 
 

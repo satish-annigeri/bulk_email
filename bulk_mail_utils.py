@@ -21,10 +21,8 @@ def read_config(fname_toml: str) -> dict:
         raise FileNotFoundError(f"Recipients file not found: {config['recipients']}")
     if not isfile(config["template"]):
         raise FileNotFoundError(f"Template file not found: {config['template']}")
-    if not isfile(config.get("pdf_attachment", "")):
-        print(
-            f"Warning: PDF attachment file not found: {config.get('pdf_attachment', '')}"
-        )
+    if not isfile(config["attachment"]):
+        print(f"Warning: PDF attachment file not found: {config['attachment']}")
     return config
 
 
@@ -141,6 +139,8 @@ def send_bulk_emails(
     count: int = -1,
     login_id: str = "",
     pwd: str = "",
+    sender_name: str = "",
+    subject: str = "",
     pdf_fname: str = "",
     # pdf_bytes: bytes = b"",
     dry_run: bool = True,
@@ -177,11 +177,11 @@ def send_bulk_emails(
                 if i >= start and i <= last:
                     html = tpl_render(tpl, tpl_type, name=row["name"], mode=row["mode"])
                     msg = build_message(
-                        sender_name=config["sender_name"],
+                        sender_name=sender_name,
                         sender_email=login_id,
                         recipient_name=row["name"],
                         recipient_email=row["email"],
-                        subject=config["subject"],
+                        subject=subject,
                         body=html,
                         pdf_fname=pdf_fname,
                         pdf_bytes=pdf_bytes,
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     df["mode"] = df["att_mode"].apply(lambda x: x.strip().lower().startswith("online"))
     df = df[["email", "name", "mode"]].copy()
     print(df)
-    if config["login_id"] and config["password"]:
+    if config["login_id"] and config["password"] and config["sender_name"]:
         send_bulk_emails(
             config["template"],
             df,
@@ -222,6 +222,8 @@ if __name__ == "__main__":
             1,
             login_id=config["login_id"],
             pwd=config["password"],
+            sender_name=config["sender_name"],
+            subject=config["subject"],
             pdf_fname=config["attachment"],
             dry_run=False,
         )
