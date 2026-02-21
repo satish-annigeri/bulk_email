@@ -1,5 +1,5 @@
-template = "meeting_link.html"
+template = "feedback.html"
 recipients = "python_for_str_engg_registrations.xlsx"
-subject = 'SEA Tech Talk "Python for Structural Engineers" - Google Meet link and schedule'
-attachment = "python_for_structural_engineers.pdf"
+subject = 'SEA Tech Talk "Python for Structural Engineers" - Feedback form'
+attachment = ""
 

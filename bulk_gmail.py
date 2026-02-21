@@ -74,7 +74,7 @@ def _(mo, pd, recipients_fname, utils):
 
 @app.cell
 def _(config, df, login_id, pdf_fname, pwd, sender_name, tpl_fname, utils):
-    utils.send_bulk_emails(tpl_fname, df, 1, -1, login_id=login_id, pwd=pwd, sender_name=sender_name, subject=config["subject"], pdf_fname=pdf_fname, dry_run=True)
+    utils.send_bulk_emails(tpl_fname, df, 1, 1, login_id=login_id, pwd=pwd, sender_name=sender_name, subject=config["subject"], pdf_fname=pdf_fname, dry_run=True)
     return
 
 
