@@ -1,5 +1,5 @@
-template = "feedback.html"
+template = "plsg_reg.md"
 recipients = "python_for_str_engg_registrations.xlsx"
-subject = 'SEA Tech Talk "Python for Structural Engineers" - Feedback form'
+subject = '"Python Learning Support Group" - Registration form'
 attachment = ""
 
