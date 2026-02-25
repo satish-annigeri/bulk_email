@@ -52,9 +52,9 @@ def _(mo, tpl_fname):
 @app.cell
 def _(mo, tpl_fname, utils):
     tpl,tpl_type = utils.read_template(tpl_fname)
-    # print(tpl_type)
-    txt = tpl.render(**{"name": "Satish Annigeri", "mode": False})
-    mo.Html(txt)
+    print(tpl.source)
+    txt = utils.tpl_render(tpl, tpl_type, **{"name": "Satish Annigeri", "mode": False})
+    mo.md(txt)
     return
 
 

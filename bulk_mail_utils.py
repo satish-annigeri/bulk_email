@@ -5,6 +5,7 @@ import tomllib
 from email.message import EmailMessage
 from email.utils import formataddr
 import smtplib
+from pathlib import Path
 
 from dotenv import load_dotenv
 import pandas as pd
@@ -74,13 +75,25 @@ def mangle_name(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
     return df
 
 
+def md2html(fname: str) -> str:
+    md_content = Path(fname).read_text(encoding="utf-8")
+    html_content = markdown(md_content)
+    return html_content
+
+
 def read_template(tpl_fname: str) -> tuple[Template, str]:
     if not isfile(tpl_fname):
         raise FileNotFoundError(f"File not found: {tpl_fname}")
 
     tpl_type = splitext(tpl_fname)[1].lower()
+    if tpl_type == ".md":
+        html = md2html(tpl_fname)
+    elif tpl_type in [".html", ".htm"]:
+        html = Path(tpl_fname).read_text(encoding="utf-8")
+    else:
+        raise ValueError(f"Not a valid template type {tpl_fname}")
 
-    return Template(filename=tpl_fname), tpl_type
+    return Template(html), tpl_type
 
 
 def tpl_render(tpl: Template, tpl_type: str, **kwargs) -> str:
@@ -88,15 +101,11 @@ def tpl_render(tpl: Template, tpl_type: str, **kwargs) -> str:
         raise ValueError(f"Unsupported template file type: {tpl_type}")
 
     txt = tpl.render(**kwargs)
-    if isinstance(txt, bytes):
+    if isinstance(txt, memoryview):
+        txt = txt.tobytes().decode("utf-8")
+    elif isinstance(txt, (bytes, bytearray)):
         txt = txt.decode("utf-8")
-    else:
-        txt = str(txt)
-
-    if tpl_type == ".md":
-        return markdown(txt)
-    else:
-        return txt
+    return txt
 
 
 def read_recipients_data(
