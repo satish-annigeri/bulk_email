@@ -27,16 +27,16 @@ def read_config(fname_toml: str) -> dict:
     return config
 
 
-def read_data_file(fname: str) -> pd.DataFrame:
+def read_data_file(fname: str, usecols=None) -> pd.DataFrame:
     if not isfile(fname):
         raise FileNotFoundError(f"File not found: {fname}")
     ext = splitext(fname)[1].lower()
     if ext in [".xlsx", ".xls"]:
         print(f"Reading Excel file {fname}")
-        df = pd.read_excel(fname)
+        df = pd.read_excel(fname, usecols=usecols)
     elif ext == ".csv":
         print(f"Reading CSV file {fname}")
-        df = pd.read_csv(fname)
+        df = pd.read_csv(fname, usecols=usecols)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
     return df
@@ -109,10 +109,13 @@ def tpl_render(tpl: Template, tpl_type: str, **kwargs) -> str:
 
 
 def read_recipients_data(
-    recipients_fname: str, cols_dup=["email", "name"], cols_sort=["name"]
+    recipients_fname: str,
+    usecols: list | None = None,
+    cols_dup=["email", "name"],
+    cols_sort=["name"],
 ) -> pd.DataFrame:
     print(recipients_fname)
-    df = read_data_file(recipients_fname)
+    df = read_data_file(recipients_fname, usecols=usecols)
     df = clean_data(df, cols_dup=cols_dup, cols_sort=cols_sort)
     # df = mangle_name(df, "name")
     # print(df)
@@ -167,9 +170,9 @@ def send_bulk_emails(
         for _, row in df.iterrows():
             i += 1
             if i >= start and i <= last:
-                html = tpl_render(tpl, tpl_type, name=row["name"], mode=True)
+                html = tpl_render(tpl, tpl_type, name=row["name"])
                 start_portion, _, _ = html.partition("</p>")
-                print(f"{row['name']} <{row['email']}> {row['mode']}")
+                print(f"{row['name']} <{row['email']}>")
                 sent_count += 1
         print(f"Total emails that will be sent: {sent_count}")
         return
@@ -187,7 +190,7 @@ def send_bulk_emails(
             for _, row in df.iterrows():
                 i += 1
                 if i >= start and i <= last:
-                    html = tpl_render(tpl, tpl_type, name=row["name"], mode=row["mode"])
+                    html = tpl_render(tpl, tpl_type, name=row["name"])
                     msg = build_message(
                         sender_name=sender_name,
                         sender_email=login_id,
@@ -200,7 +203,7 @@ def send_bulk_emails(
                     )
                     try:
                         server.send_message(msg)
-                        print(f"{row['name']} <{row['email']}> {row['mode']}")
+                        print(f"{row['name']} <{row['email']}>")
                         sent_count += 1
                         time.sleep(delay)
                     except Exception as e:
@@ -223,9 +226,11 @@ if __name__ == "__main__":
         f"Login ID: {config['login_id']}, Sender Name: {config['sender_name']}, Password: {'*' * len(config['password']) if config['password'] else None}"
     )
 
-    df = read_recipients_data(config["recipients"], cols_dup=[], cols_sort=[])
-    df["mode"] = df["att_mode"].apply(lambda x: x.strip().lower().startswith("online"))
-    df = df[["email", "name", "mode"]].copy()
+    df = read_recipients_data(
+        config["recipients"], usecols=["email", "name"], cols_dup=[], cols_sort=[]
+    )
+    # df["mode"] = df["att_mode"].apply(lambda x: x.strip().lower().startswith("online"))
+    # df = df[["email", "name", "mode"]].copy()
     print(df)
     if config["login_id"] and config["password"] and config["sender_name"]:
         send_bulk_emails(
