@@ -1,5 +1,5 @@
-template = "plsg_reg.md"
-recipients = "python_for_str_engg_registrations.xlsx"
-subject = '"Python Learning Support Group" - Registration form'
+template = "plsg_welcome.md"
+recipients = "plsg_registrations.xlsx"
+subject = '"Python Learning Support Group" - Welcome message'
 attachment = ""
 
