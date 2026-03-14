@@ -45,18 +45,6 @@ def _(load_dotenv, os):
 
 
 @app.cell
-def _():
-    # config = utils.read_config("config.toml")
-    # pprint(config, indent=4)
-    # tpl_fname = config["template"]
-    # recipients_fname = config["recipients"]
-    # pdf_fname = config["attachment"]
-    # print(f"Template: {tpl_fname} Recipients data: {recipients_fname}")
-    # print(f"PDF attachment file: {pdf_fname}")
-    return
-
-
-@app.cell
 def _(mo):
     fname_tpl = mo.ui.file_browser(filetypes=[".md", ".html"], multiple=False)
     fname_tpl
