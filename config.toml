@@ -1,5 +1,5 @@
-template = "plsg_welcome.md"
-recipients = "plsg_registrations.xlsx"
+template = "template.md"
+recipients = "recipients.xlsx"
 subject = '"Python Learning Support Group" - Welcome message'
 attachment = ""
 

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.20.2"
+__generated_with = "0.20.4"
 app = marimo.App(width="medium")
 
 
@@ -25,7 +25,10 @@ def _(load_dotenv, os):
     login_id = os.getenv("LOGIN_ID", "")
     sender_name = os.getenv("SENDER_NAME", "")
     pwd = os.getenv("APP_PASSWORD", "")
-    print(f"Login ID: {sender_name} <{login_id}> {pwd}")
+    if login_id:
+        print(f"Login ID: {sender_name} <{login_id}> {pwd}")
+    else:
+        print(".env file not found")
     return login_id, pwd, sender_name
 
 
