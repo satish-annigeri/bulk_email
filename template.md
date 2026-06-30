@@ -1,6 +1,6 @@
 # This is a sample template
 
-Name: {{ name }}
+Name: ${name}
 
-Email: {{ email }}
+Email: ${email}
 

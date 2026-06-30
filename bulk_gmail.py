@@ -25,10 +25,10 @@ def _(load_dotenv, os):
     login_id = os.getenv("LOGIN_ID", "")
     sender_name = os.getenv("SENDER_NAME", "")
     pwd = os.getenv("APP_PASSWORD", "")
-    if login_id:
+    if login_id or sender_name or pwd:
         print(f"Login ID: {sender_name} <{login_id}> {pwd}")
     else:
-        print(".env file not found")
+        print("One or more of LOGIN_ID, SENDER_NAME, APP_PASSWORD not found or .env file missing")
     return login_id, pwd, sender_name
 
 
@@ -56,9 +56,9 @@ def _(mo, tpl_fname):
 def _(mo, tpl_fname, utils):
     tpl,tpl_type = utils.read_template(tpl_fname)
     print(tpl.source)
-    txt = utils.tpl_render(tpl, tpl_type, **{"name": "Satish Annigeri", "mode": False})
+    txt = utils.tpl_render(tpl, tpl_type, **{"name": "Satish Annigeri", "email": "satish.annigeri@gmail.com"})
     mo.md(txt)
-    return
+    return (tpl,)
 
 
 @app.cell
@@ -78,6 +78,12 @@ def _(mo, recipients_fname, utils):
 @app.cell
 def _(config, df, login_id, pdf_fname, pwd, sender_name, tpl_fname, utils):
     utils.send_bulk_emails(tpl_fname, df, 1, -1, login_id=login_id, pwd=pwd, sender_name=sender_name, subject=config["subject"], pdf_fname=pdf_fname, dry_run=False)
+    return
+
+
+@app.cell
+def _(tpl):
+    tpl.render(**{'name': 'Satish', 'email': 'satish.annigeri@gmail.com'})
     return
 
 
